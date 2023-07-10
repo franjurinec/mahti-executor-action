@@ -34,19 +34,22 @@ runs:
         END
       env:
         SSHUSER: ${{ inputs.mahti-username }}
-        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Configure Target Directory
       shell: bash
       run: echo "TARGET_DIR=${{ inputs.mahti-base-dir }}/$(echo ${{ github.ref_name }} | iconv -t ascii//TRANSLIT | sed -E -e 's/[^[:alnum:]]+/-/g' -e 's/^-+|-+$//g' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-      
+
     - name: Download Source Code
       shell: bash
       run: sshpass -e ssh slurm git clone --depth 1 --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git $TARGET_DIR
+      env:
+        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Install Packages
       shell: bash
       run: sshpass -e ssh slurm -tt "module load python-data; pip install -r $TARGET_DIR/requirements.txt --user"
+      env:
+        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Transfer Env
       shell: bash
@@ -55,25 +58,32 @@ runs:
         sshpass -e ssh slurm cat $TARGET_DIR/.env
       env:
         SOURCE_ENV: ${{ inputs.data-source-env }}
+        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Execute
       shell: bash
       run: sshpass -e ssh slurm -tt sbatch -D $TARGET_DIR --wait $TARGET_DIR/slurm.sh
+      env:
+        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Print Results
       shell: bash
       if: success() || failure()
       run: sshpass -e ssh slurm cat $TARGET_DIR/*.out
+      env:
+        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Check Data Output
       shell: bash
       run: sshpass -e ssh slurm ls $TARGET_DIR/tmp/out
+      env:
+        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Upload Dataset
       shell: bash
-      run: sshpass -e ssh slurm -tt OS_PASSWORD=$PASSWORD S3_TARGET="GH_DATASETS/${{ github.run_id }}-${{ github.run_attempt }}" sbatch -D $TARGET_DIR --wait $TARGET_DIR/.github/workflows/slurm-upload.sh
+      run: sshpass -e ssh slurm -tt OS_PASSWORD=$SSHPASS S3_TARGET="GH_DATASETS/${{ github.run_id }}-${{ github.run_attempt }}" sbatch -D $TARGET_DIR --wait $TARGET_DIR/.github/workflows/slurm-upload.sh
       env:
-        PASSWORD: ${{ inputs.mahti-password }}
+        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Collect Metadata
       shell: bash
@@ -81,6 +91,8 @@ runs:
         mkdir -p ./tmp/meta
         sshpass -e scp slurm:$TARGET_DIR/tmp/meta/metadata.json ./tmp/meta
         cat ./tmp/meta/metadata.json
+      env:
+        SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Create InvenioRDM Record
       uses: franjurinec/invenio-action@v1
@@ -93,3 +105,5 @@ runs:
       shell: bash
       if: success() || failure()
       run: sshpass -e ssh slurm rm -rf $TARGET_DIR
+      env:
+        SSHPASS: ${{ inputs.mahti-password }}
