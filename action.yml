@@ -89,8 +89,9 @@ runs:
       shell: bash
       run: |
         mkdir -p ./tmp/meta
-        sshpass -e scp slurm:$TARGET_DIR/tmp/meta/metadata.json ./tmp/meta
-        cat ./tmp/meta/metadata.json
+        sshpass -e scp slurm:$TARGET_DIR/metadata.json ./tmp/meta
+        sshpass -e scp -r slurm:$TARGET_DIR/tmp/meta ./tmp/meta
+        ls ./tmp/meta
       env:
         SSHPASS: ${{ inputs.mahti-password }}
 
@@ -100,6 +101,7 @@ runs:
         invenio-url: https://fusion-platform-test.rahtiapp.fi/
         invenio-key: ${{ inputs.invenio-key }}
         invenio-root-id: qfeqv-m6q10
+        metadata-dir: ./tmp/meta
     
     - name: Delete Working Directory
       shell: bash
