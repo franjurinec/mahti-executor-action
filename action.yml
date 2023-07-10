@@ -20,6 +20,7 @@ runs:
   using: "composite"
   steps:
     - name: Configure SSH
+      shell: bash
       run: |
         sudo apt update
         sudo apt install sshpass
@@ -36,15 +37,19 @@ runs:
         SSHPASS: ${{ inputs.mahti-password }}
 
     - name: Configure Target Directory
+      shell: bash
       run: echo "TARGET_DIR=${{ inputs.mahti-base-dir }}/$(echo ${{ github.ref_name }} | iconv -t ascii//TRANSLIT | sed -E -e 's/[^[:alnum:]]+/-/g' -e 's/^-+|-+$//g' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       
     - name: Download Source Code
+      shell: bash
       run: sshpass -e ssh slurm git clone --depth 1 --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git $TARGET_DIR
 
     - name: Install Packages
+      shell: bash
       run: sshpass -e ssh slurm -tt "module load python-data; pip install -r $TARGET_DIR/requirements.txt --user"
 
     - name: Transfer Env
+      shell: bash
       run: |
         sshpass -e ssh slurm "echo $SOURCE_ENV" >> $TARGET_DIR/.env"
         sshpass -e ssh slurm cat $TARGET_DIR/.env
@@ -52,21 +57,26 @@ runs:
         SOURCE_ENV: ${{ inputs.data-source-env }}
 
     - name: Execute
+      shell: bash
       run: sshpass -e ssh slurm -tt sbatch -D $TARGET_DIR --wait $TARGET_DIR/slurm.sh
 
     - name: Print Results
+      shell: bash
       if: success() || failure()
       run: sshpass -e ssh slurm cat $TARGET_DIR/*.out
 
     - name: Check Data Output
+      shell: bash
       run: sshpass -e ssh slurm ls $TARGET_DIR/tmp/out
 
     - name: Upload Dataset
+      shell: bash
       run: sshpass -e ssh slurm -tt OS_PASSWORD=$PASSWORD S3_TARGET="GH_DATASETS/${{ github.run_id }}-${{ github.run_attempt }}" sbatch -D $TARGET_DIR --wait $TARGET_DIR/.github/workflows/slurm-upload.sh
       env:
         PASSWORD: ${{ inputs.mahti-password }}
 
     - name: Collect Metadata
+      shell: bash
       run: |
         mkdir -p ./tmp/meta
         sshpass -e scp slurm:$TARGET_DIR/tmp/meta/metadata.json ./tmp/meta
@@ -80,5 +90,6 @@ runs:
         invenio-root-id: qfeqv-m6q10
     
     - name: Delete Working Directory
+      shell: bash
       if: success() || failure()
       run: sshpass -e ssh slurm rm -rf $TARGET_DIR
