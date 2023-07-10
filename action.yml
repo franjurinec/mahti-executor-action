@@ -54,7 +54,7 @@ runs:
     - name: Transfer Env
       shell: bash
       run: |
-        sshpass -e ssh slurm "echo $SOURCE_ENV" >> $TARGET_DIR/.env"
+        sshpass -e ssh slurm "echo $SOURCE_ENV >> $TARGET_DIR/.env"
         sshpass -e ssh slurm cat $TARGET_DIR/.env
       env:
         SOURCE_ENV: ${{ inputs.data-source-env }}
