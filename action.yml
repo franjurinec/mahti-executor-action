@@ -1,0 +1,84 @@
+name: 'Rahti Executor'
+description: 'Run data workflow on the CSC Mahti cluster.'
+inputs:
+  mahti-username:
+    description: 'Username for Mahti SSH connection.'
+    required: true
+  mahti-password:
+    description: 'Password for Mahti SSH connection.'
+    required: true
+  mahti-base-dir:
+    description: 'Base directory in Mahti for instantiating the workflow.'
+    required: true
+  data-source-env:
+    description: 'Secrets for accessing source data.'
+    required: true
+  invenio-key:
+    description: 'Key for uploading InvenioRDM record.'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Configure SSH
+      run: |
+        sudo apt update
+        sudo apt install sshpass
+        mkdir -p ~/.ssh/
+        cat >>~/.ssh/config <<END
+        Host slurm
+          HostName mahti.csc.fi
+          User $SSHUSER
+          StrictHostKeyChecking no
+          ForwardAgent yes
+        END
+      env:
+        SSHUSER: ${{ inputs.mahti-username }}
+        SSHPASS: ${{ inputs.mahti-password }}
+
+    - name: Configure Target Directory
+      run: echo "TARGET_DIR=${{ inputs.mahti-base-dir }}/$(echo ${{ github.ref_name }} | iconv -t ascii//TRANSLIT | sed -E -e 's/[^[:alnum:]]+/-/g' -e 's/^-+|-+$//g' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      
+    - name: Download Source Code
+      run: sshpass -e ssh slurm git clone --depth 1 --branch ${{ github.ref_name }} https://github.com/${{ github.repository }}.git $TARGET_DIR
+
+    - name: Install Packages
+      run: sshpass -e ssh slurm -tt "module load python-data; pip install -r $TARGET_DIR/requirements.txt --user"
+
+    - name: Transfer Env
+      run: |
+        sshpass -e ssh slurm "echo $SOURCE_ENV" >> $TARGET_DIR/.env"
+        sshpass -e ssh slurm cat $TARGET_DIR/.env
+      env:
+        SOURCE_ENV: ${{ inputs.data-source-env }}
+
+    - name: Execute
+      run: sshpass -e ssh slurm -tt sbatch -D $TARGET_DIR --wait $TARGET_DIR/slurm.sh
+
+    - name: Print Results
+      if: success() || failure()
+      run: sshpass -e ssh slurm cat $TARGET_DIR/*.out
+
+    - name: Check Data Output
+      run: sshpass -e ssh slurm ls $TARGET_DIR/tmp/out
+
+    - name: Upload Dataset
+      run: sshpass -e ssh slurm -tt OS_PASSWORD=$PASSWORD S3_TARGET="GH_DATASETS/${{ github.run_id }}-${{ github.run_attempt }}" sbatch -D $TARGET_DIR --wait $TARGET_DIR/.github/workflows/slurm-upload.sh
+      env:
+        PASSWORD: ${{ inputs.mahti-password }}
+
+    - name: Collect Metadata
+      run: |
+        mkdir -p ./tmp/meta
+        sshpass -e scp slurm:$TARGET_DIR/tmp/meta/metadata.json ./tmp/meta
+        cat ./tmp/meta/metadata.json
+
+    - name: Create InvenioRDM Record
+      uses: franjurinec/invenio-action@v1
+      with:
+        invenio-url: https://fusion-platform-test.rahtiapp.fi/
+        invenio-key: ${{ inputs.invenio-key }}
+        invenio-root-id: qfeqv-m6q10
+    
+    - name: Delete Working Directory
+      if: success() || failure()
+      run: sshpass -e ssh slurm rm -rf $TARGET_DIR
