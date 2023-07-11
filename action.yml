@@ -101,7 +101,7 @@ runs:
         OUT_PATH: GH_DATASETS/${{ github.run_id }}-${{ github.run_attempt }}
 
     - name: Create InvenioRDM Record
-      uses: franjurinec/invenio-action@v1.1.0
+      uses: franjurinec/invenio-action@v1.1.1
       with:
         invenio-url: https://fusion-platform-test.rahtiapp.fi/
         invenio-key: ${{ inputs.invenio-key }}
