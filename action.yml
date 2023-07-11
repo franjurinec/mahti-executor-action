@@ -81,7 +81,10 @@ runs:
 
     - name: Upload Dataset
       shell: bash
-      run: sshpass -e ssh slurm -tt OS_PASSWORD=$SSHPASS S3_TARGET="GH_DATASETS/${{ github.run_id }}-${{ github.run_attempt }}" sbatch -D $TARGET_DIR --wait $TARGET_DIR/.github/workflows/slurm-upload.sh
+      run: |
+        sshpass -e ssh slurm mkdir -p $TARGET_DIR/tmp/scripts
+        sshpass -e scp ${{ github.action_path }}/mahti-allas-upload.sh slurm:$TARGET_DIR/tmp/scripts
+        sshpass -e ssh slurm -tt OS_PASSWORD=$SSHPASS S3_TARGET="GH_DATASETS/${{ github.run_id }}-${{ github.run_attempt }}" sbatch -D $TARGET_DIR --wait $TARGET_DIR/tmp/scripts/mahti-allas-upload.sh
       env:
         SSHPASS: ${{ inputs.mahti-password }}
 
