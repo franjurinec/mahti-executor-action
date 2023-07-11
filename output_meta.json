@@ -2,5 +2,5 @@
     "name": "CSC Allas",
     "website": "https://docs.csc.fi/data/Allas/",
     "dataset_path": "$OUT_PATH",
-    "access_instruction": "<h4>How to access this data?</h4><p>The dataset is stored at CSC's general purpose research data storage server <strong>Allas</strong> and can be accessed via Swift or S3 protocols.<br> For more information on how to use this service, refer to the <a href=\"https://docs.csc.fi/data/Allas\">official documentation</a>.<br>Relevant access information and precise location of the data is included in the 'output_info' object in METADATA.json.</p>"
+    "access_instructions": "<h4>How to access this data?</h4><p>The dataset is stored at CSC's general purpose research data storage server <strong>Allas</strong> and can be accessed via Swift or S3 protocols.<br> For more information on how to use this service, refer to the <a href=\"https://docs.csc.fi/data/Allas\">official documentation</a>.<br>Relevant access information and precise location of the data is included in the 'output_info' object in METADATA.json.</p>"
 }
