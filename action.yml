@@ -1,5 +1,5 @@
-name: 'Rahti Executor'
-description: 'Run data workflow on the CSC Mahti cluster.'
+name: 'Mahti Executor'
+description: 'Run data workflows on the CSC Mahti cluster.'
 inputs:
   mahti-username:
     description: 'Username for Mahti SSH connection.'
@@ -91,9 +91,11 @@ runs:
         mkdir -p ./tmp/meta
         sshpass -e scp slurm:$TARGET_DIR/metadata.json ./tmp/meta
         sshpass -e scp -r slurm:$TARGET_DIR/tmp/meta ./tmp/meta
+        envsubst < ${{ github.action_path }}/output_meta.json > ./tmp/meta/output_meta.json
         ls ./tmp/meta
       env:
         SSHPASS: ${{ inputs.mahti-password }}
+        OUT_PATH: GH_DATASETS/${{ github.run_id }}-${{ github.run_attempt }}
 
     - name: Create InvenioRDM Record
       uses: franjurinec/invenio-action@v1
