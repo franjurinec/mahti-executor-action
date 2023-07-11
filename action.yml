@@ -92,8 +92,8 @@ runs:
       shell: bash
       run: |
         mkdir -p ./tmp/meta
+        sshpass -e scp -r slurm:$TARGET_DIR/tmp/meta ./tmp
         sshpass -e scp slurm:$TARGET_DIR/metadata.json ./tmp/meta
-        sshpass -e scp -r slurm:$TARGET_DIR/tmp/meta ./tmp/meta
         envsubst < ${{ github.action_path }}/output_meta.json > ./tmp/meta/output_meta.json
         ls ./tmp/meta
       env:
