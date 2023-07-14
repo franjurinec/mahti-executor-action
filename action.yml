@@ -16,6 +16,9 @@ inputs:
   invenio-key:
     description: 'Key for uploading InvenioRDM record.'
     required: true
+  invenio-root-record:
+    description: 'ID of the root dataset record in InvenioRDM.'
+    required: true
 runs:
   using: "composite"
   steps:
@@ -105,7 +108,7 @@ runs:
       with:
         invenio-url: https://fusion-platform-test.rahtiapp.fi/
         invenio-key: ${{ inputs.invenio-key }}
-        invenio-root-id: qfeqv-m6q10
+        invenio-root-id: ${{ inputs.invenio-root-record }}
         metadata-dir: ./tmp/meta
     
     - name: Delete Working Directory
